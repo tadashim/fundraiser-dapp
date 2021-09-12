@@ -22,6 +22,8 @@ import Web3 from 'web3';
 import detectEthereumProvider from '@metamask/detect-provider';
 import FundraiserContract from "./contracts/Fundraiser.json";
 
+const cc = require('cryptocompare');
+
 const useStyles = makeStyles(theme => ({
   card: {
     maxWidth: 450,
@@ -68,7 +70,9 @@ const FundraiserCard = (props) => {
   const [ url, setURL ] = useState(null);
   const [ open, setOpen ] = useState(false);
   const [ donationAmount, setDonationAmount ] = useState(null);
+  const [ exchangeRate, setExchangeRate ] = useState(null);
 
+  const ethAmount = donationAmount / exchangeRate || 0;
   const { fundraiser } = props;
 
   useEffect(() => {
@@ -99,10 +103,15 @@ const FundraiserCard = (props) => {
       const imageURL = await instance.methods.imageURL().call();
       const url = await instance.methods.url().call();
 
+      const exchangeRate = await cc.price('ETH', ['USD']);
+      setExchangeRate(exchangeRate.USD);
+      const eth = web3.utils.fromWei(totalDonations, 'ether');
+      const dollerDonationAmount = exchangeRate.USD * eth;
+
       setFundname(name);
       setDescription(description);
       setImageURL(imageURL);
-      setTotalDonations(totalDonations);
+      setTotalDonations(dollerDonationAmount);
       setURL(url);
     } catch(error) {
       alert(
@@ -121,7 +130,8 @@ const FundraiserCard = (props) => {
   }
 
   const submitFunds = async () => {
-    const donation = web3.utils.toWei(donationAmount);
+    const ethTotal = donationAmount / exchangeRate;
+    const donation = web3.utils.toWei(ethTotal.toString());
 
     const currentUser = await web3.currentProvider.selectedAddress;
 
@@ -148,16 +158,15 @@ const FundraiserCard = (props) => {
           </DialogContentText>
         </DialogContent>
         <FormControl className={classes.formControl}>
+          $
           <input
             id="component-simple"
             value={donationAmount}
             onChange={(e) => setDonationAmount(e.target.value)}
             placeholder="0.00"
           />
-          ETH
         </FormControl>
-
-        <p></p>
+        <p>Eth: {ethAmount}</p>
 
         <Button onClick={submitFunds} variant="contained" color="primary">
           Donate
@@ -181,7 +190,7 @@ const FundraiserCard = (props) => {
             </Typography>
             <Typography variant="body2" color="textSecondary" component="p">
               <p>{description}</p>
-              <p>Total Donations: {totalDonations} wei</p>
+              <p>Total Donations: ${totalDonations}</p>
             </Typography>
           </CardContent>
         </CardActionArea>
