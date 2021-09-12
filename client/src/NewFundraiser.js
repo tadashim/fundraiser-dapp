@@ -21,54 +21,62 @@ const useStyles = makeStyles(theme => ({
 
 const NewFundraiser = () => {
   const [ name, setFundraiserName ] = useState(null);
-  const [ url, setFundraiserWebsite ] = useState(null);
+  const [ website, setFundraiserWebsite ] = useState(null);
   const [ description, setFundraiserDescription ] = useState(null);
-  const [ imageURL, setImage ] = useState(null);
-  const [ beneficiary, setAddress ] = useState(null);
-  const [ custodian, setCustodian ] = useState(null);
+  const [ image, setImage ] = useState(null);
+  const [ address, setAddress ] = useState(null);
   const [ contract, setContract ] = useState(null);
   const [ accounts, setAccounts ] = useState(null);
+  const [ web3, setWeb3 ] = useState(null);
 
   const classes = useStyles();
 
   useEffect(() => {
+    const init = async () => {
+      try {
+        const web3 = await getWeb3();
+        const networkId = await web3.eth.net.getId();
+        const deployedNetwork = FundraiserFactoryContract.networks[networkId];
+        const accounts = await web3.eth.getAccounts();
+        const instance = new web3.eth.Contract(
+          FundraiserFactoryContract.abi,
+          deployedNetwork && deployedNetwork.address,
+        );
+        setWeb3(web3);
+        setContract(instance);
+        setAccounts(accounts);
+      } catch(error) {
+        alert(
+          `Failed to load web3, accounts, or contract. Check console for details.`,
+        );
+        console.error(error);
+      }
+    }
     init();
   }, []);
 
-  const init = async () => {
-    try {
-      const web3 = await getWeb3();
-      const networkId = await web3.eth.net.getId();
-      const deployedNetwork = FundraiserFactoryContract.networks[networkId];
-      const accounts = await web3.eth.getAccounts();
-      const instance = new web3.eth.Contract(
-        FundraiserFactoryContract.abi,
-        deployedNetwork && deployedNetwork.address,
-      );
-      setContract(instance);
-      setAccounts(accounts);
-    } catch(error) {
-      alert(
-        `Failed to load web3, accounts, or contract. Check console for details.`,
-      );
-      console.error(error);
-    }
-  }
-
   const handleSubmit = async () => {
+    const imageURL = image
+    const url = website
+    const beneficiary = address
+
+    const currentUser = await web3.currentProvider.selectedAddress
+
     await contract.methods.createFundraiser(
       name,
       url,
       imageURL,
       description,
       beneficiary
-    ).send({ from: accounts[0] });
+    ).send({ from: currentUser });
+
     alert('Successfully created fundraiser');
   };
 
   return (
     <div className="create-fundraiser-container">
       <h2>Create a New Fundraiser</h2>
+
       <label>Name</label>
       <TextField
         id="outlined-bare"
@@ -79,6 +87,7 @@ const NewFundraiser = () => {
         variant="outlined"
         inputProps={{ 'aria-label': 'bare' }}
       />
+
       <label>Website</label>
       <TextField
         id="outlined-bare"
@@ -89,6 +98,7 @@ const NewFundraiser = () => {
         variant="outlined"
         inputProps={{ 'aria-label': 'bare' }}
       />
+
       <label>Description</label>
       <TextField
         id="outlined-bare"
@@ -99,6 +109,7 @@ const NewFundraiser = () => {
         variant="outlined"
         inputProps={{ 'aria-label': 'bare' }}
       />
+
       <label>Image</label>
       <TextField
         id="outlined-bare"
@@ -116,16 +127,6 @@ const NewFundraiser = () => {
         placeholder="Fundraiser Ethereum Address"
         margin="normal"
         onChange={(e) => setAddress(e.target.value)}
-        variant="outlined"
-        inputProps={{ 'aria-label': 'bare' }}
-      />
-      <label>Custodian</label>
-      <TextField
-        id="outlined-bare"
-        className={classes.textField}
-        placeholder="Fundraiser Custodian"
-        margin="normal"
-        onChange={(e) => setCustodian(e.target.value)}
         variant="outlined"
         inputProps={{ 'aria-label': 'bare' }}
       />

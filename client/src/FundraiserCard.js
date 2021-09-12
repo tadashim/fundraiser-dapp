@@ -6,6 +6,18 @@ import CardActions from '@material-ui/core/CardActions';
 import CardContent from '@material-ui/core/CardContent';
 import CardMedia from '@material-ui/core/CardMedia';
 import Typography from '@material-ui/core/Typography';
+import Button from '@material-ui/core/Button';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
+import FilledInput from '@material-ui/core/FilledInput';
+import FormControl from '@material-ui/core/FormControl';
+import FormHelperText from '@material-ui/core/FormHelperText';
+import Input from '@material-ui/core/Input';
+import InputLabel from '@material-ui/core/InputLabel';
+import OutlinedInput from '@material-ui/core/OutlinedInput';
 import Web3 from 'web3';
 import detectEthereumProvider from '@metamask/detect-provider';
 import FundraiserContract from "./contracts/Fundraiser.json";
@@ -17,6 +29,28 @@ const useStyles = makeStyles(theme => ({
   },
   media: {
     height: 140,
+  },
+  button: {
+    margin: theme.spacing(1),
+  },
+  input: {
+    display: 'none',
+  },
+  container: {
+    display: 'flex',
+    flexWrap: 'wrap',
+  },
+  formControl: {
+    margin: theme.spacing(1),
+    display: 'table-cell',
+  },
+  paper: {
+    position: 'absolute',
+    width: 400,
+    backgroundColor: theme.palette.background.paper,
+    border: 'none',
+    boxShadow: 'none',
+    padding: 4,
   },
 }));
 
@@ -32,6 +66,8 @@ const FundraiserCard = (props) => {
   const [ donationCount, setDonationCount ] = useState(null);
   const [ imageURL, setImageURL ] = useState(null);
   const [ url, setURL ] = useState(null);
+  const [ open, setOpen ] = useState(false);
+  const [ donationAmount, setDonationAmount ] = useState(null);
 
   const { fundraiser } = props;
 
@@ -39,7 +75,7 @@ const FundraiserCard = (props) => {
     if (fundraiser) {
       init(fundraiser);
     }
-  },[]);
+  },[fundraiser]);
 
   const init = async (fundraiser) => {
     try {
@@ -76,9 +112,63 @@ const FundraiserCard = (props) => {
     }
   }
 
+  const handleOpen = () => {
+    setOpen(true);
+  }
+
+  const handleClose = () => {
+    setOpen(false);
+  }
+
+  const submitFunds = async () => {
+    const donation = web3.utils.toWei(donationAmount);
+
+    const currentUser = await web3.currentProvider.selectedAddress;
+
+    await contract.methods.donate().send({
+      from: currentUser,
+      value: donation,
+      gas: 650000
+    });
+    setOpen(false);
+  }
+
   return (
     <div className="fundraiser-card-container">
-      <Card className={classes.card}>
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        aria-labelledby="form-dialog-title"
+      >
+        <DialogTitle id="form-dialog-title">Donate to {fundName}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            <img src={imageURL} width='200px' height='130px' />
+            <p>{description}</p>
+          </DialogContentText>
+        </DialogContent>
+        <FormControl className={classes.formControl}>
+          <input
+            id="component-simple"
+            value={donationAmount}
+            onChange={(e) => setDonationAmount(e.target.value)}
+            placeholder="0.00"
+          />
+          ETH
+        </FormControl>
+
+        <p></p>
+
+        <Button onClick={submitFunds} variant="contained" color="primary">
+          Donate
+        </Button>
+        <DialogActions>
+          <Button onClick={handleClose} color="primary">
+            Cancel
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Card className={classes.card} onClick={handleOpen}>
         <CardActionArea>
           <CardMedia
             className={classes.cardMedia}
@@ -91,9 +181,19 @@ const FundraiserCard = (props) => {
             </Typography>
             <Typography variant="body2" color="textSecondary" component="p">
               <p>{description}</p>
+              <p>Total Donations: {totalDonations} wei</p>
             </Typography>
           </CardContent>
         </CardActionArea>
+        <CardActions>
+          <Button
+            onClick={handleOpen}
+            variant="contained"
+            className={classes.button}
+          >
+            View More
+          </Button>
+        </CardActions>
       </Card>
     </div>
   );
