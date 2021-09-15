@@ -8,6 +8,7 @@ import FundraiserFactoryContract from "./contracts/FundraiserFactory.json";
 import getWeb3 from "./getWeb3";
 import NewFundraiser from "./NewFundraiser";
 import Home from "./Home";
+import Receipts from "./Receipts";
 import "./App.css";
 
 const useStyles = makeStyles(theme => ({
@@ -61,6 +62,7 @@ const App = () => {
 
         <Route path="/" exact component={Home} />
         <Route path="/new" exact component={NewFundraiser} />
+        <Route path="/receipts" component={Receipts} />
       </div>
     </Router>
   );
