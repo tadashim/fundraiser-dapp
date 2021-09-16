@@ -73,6 +73,8 @@ const FundraiserCard = (props) => {
   const [ donationAmount, setDonationAmount ] = useState(null);
   const [ exchangeRate, setExchangeRate ] = useState(null);
   const [ userDonations, setUserDonations ] = useState(null);
+  const [ isOwner, setIsOwner ] = useState(false);
+  const [ beneficiary, setBeneficiary ] = useState(null);
 
   const ethAmount = donationAmount / exchangeRate || 0;
   const { fundraiser } = props;
@@ -118,6 +120,11 @@ const FundraiserCard = (props) => {
       const userDonations = await instance.methods.myDonations().call({from: accounts[0]});
       console.log(userDonations);
       setUserDonations(userDonations);
+      const isUser = accounts[0];
+      const isOwner = await instance.methods.owner().call();
+      if (isOwner === accounts[0]) {
+        setIsOwner(true);
+      }
     } catch(error) {
       alert(
         `Failed to load web3, accounts, or contract. Check console for details.`,
@@ -186,6 +193,20 @@ const FundraiserCard = (props) => {
     });
   }
 
+  const withdrawalFunds = async () => {
+    await contract.methods.withdraw().send({
+      from: accounts[0],
+    })
+    alert('Funds Withdrawn!');
+    setOpen(false);
+  }
+
+  const setNewBeneficiary = async () => {
+    await contract.methods.setBeneficiary(beneficiary).send({ from: accounts[0] });
+    alert('Fundraiser Beneficiary Changed!');
+    setOpen(false);
+  }
+
   return (
     <div className="fundraiser-card-container">
       <Dialog
@@ -218,10 +239,37 @@ const FundraiserCard = (props) => {
           <h3>My Donations</h3>
           {renderDonationList()}
         </div>
+
+        { isOwner &&
+          <div>
+            <FormControl className={classes.formControl}>
+              Beneficiary:
+              <Input
+                value={beneficiary}
+                onChange={(e) => setBeneficiary(e.target.value)}
+                placeholder="Set Beneficiary"
+              />
+            </FormControl>
+
+            <Button
+              variant="contained"
+              style={{ marginTop: 20 }}
+              color="primary"
+              onClick={setNewBeneficiary}
+            >
+              Set Beneficiary
+            </Button>
+          </div>
+        }
         <DialogActions>
           <Button onClick={handleClose} color="primary">
             Cancel
           </Button>
+          { isOwner &&
+            <Button variant="contained" color="primary" onClick={withdrawalFunds}>
+              Withdrawal
+            </Button>
+          }
         </DialogActions>
       </Dialog>
       <Card className={classes.card} onClick={handleOpen}>
